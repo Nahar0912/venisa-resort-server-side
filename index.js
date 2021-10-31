@@ -22,6 +22,7 @@ async function run() {
         const database = client.db('venisa-resort');
         const servicesCollection = database.collection('services');
         const packagesCollection = database.collection('packages');
+        const usersCollection = database.collection('users');
 
         // GET API
         app.get('/services', async (req, res) => {
@@ -35,30 +36,53 @@ async function run() {
             res.send(packages);
         });
 
-        // GET Single Service
-        app.get('/services/:id', async (req, res) => {
+        app.get('/users', async (req, res) => {
+            const cursor = usersCollection.find({});
+            const users = await cursor.toArray();
+            res.send(users);
+        });
+
+        app.get('/users/:id', async (req, res) => {
             const id = req.params.id;
-            console.log('getting specific service', id);
             const query = { _id: ObjectId(id) };
-            const service = await servicesCollection.findOne(query);
-            res.json(service);
+            const user = await usersCollection.findOne(query);
+            res.send(user);
         })
 
         // POST API
-        app.post('/services', async (req, res) => {
-            const service = req.body;
-            console.log('hit the post api', service);
-
-            const result = await servicesCollection.insertOne(service);
-            console.log(result);
-            res.json(result)
+        app.post('/users', async (req, res) => {
+            const newUser = req.body;
+            const result = await usersCollection.insertOne(newUser);
+            console.log('got new user', req.body);
+            console.log('added user', result);
+            res.json(result);
         });
 
+        //UPDATE API
+        app.put('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const updatedUser = req.body;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    name: updatedUser.name,
+                    email: updatedUser.email
+                },
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options)
+            console.log('updating', id)
+            res.json(result)
+        })
+
         // DELETE API
-        app.delete('/services/:id', async (req, res) => {
+        app.delete('/users/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
-            const result = await servicesCollection.deleteOne(query);
+            const result = await usersCollection.deleteOne(query);
+
+            console.log('deleting user with id ', result);
+
             res.json(result);
         })
     }
